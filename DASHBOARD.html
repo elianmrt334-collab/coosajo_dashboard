@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Gerencial - COOSAJO</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        :root { --azul: #172e59; --verde: #158e45; --blanco: #ffffff; --fondo: #f0f4f8; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--fondo); margin: 0; padding: 20px; color: #333; }
+        
+        .header { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; position: relative; }
+        .btn-volver { position: absolute; left: 0; top: 10px; background: var(--azul); color: white; padding: 10px 15px; text-decoration: none; border-radius: 8px; font-weight: bold; }
+        .logo { max-width: 180px; margin-bottom: 10px; }
+        
+        .barra-herramientas { background: var(--blanco); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; }
+        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; }
+        
+        .btn-pdf { background-color: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-pdf:hover { background-color: #c0392b; }
+
+        #area-reporte { background: transparent; padding: 10px; margin: 0 auto; box-sizing: border-box; width: 100%; max-width: 1000px; }
+        
+        .card { background: var(--blanco); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #eaeaea; }
+        .banner-total { background: linear-gradient(135deg, var(--azul), #2a4b8d); color: white; text-align: center; padding: 30px; border-radius: 12px; }
+        .monto-total { font-size: 3.5rem; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+
+        .grid-graficas { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .grafica-contenedor { height: 450px; display: flex; justify-content: center; position: relative; width: 100%; background: white;}
+
+        @media (min-width: 800px) { .grid-graficas { grid-template-columns: 1fr 1fr; } .grafica-contenedor { height: 350px; } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="index.html" class="btn-volver">← Volver</a>
+        <img src="logo.png" alt="COOSAJO" class="logo">
+        <h1 style="color: var(--azul);">Reporte de Producción y Ahorro</h1>
+    </div>
+
+    <div class="barra-herramientas">
+        <label>Ver reporte de:</label>
+        <select id="filtro">
+            <option value="TODO">Resumen Anual</option>
+            <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+            <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+            <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+            <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+        </select>
+        <button id="getPDF" class="btn-pdf">📄 Generar PDF Oficial</button>
+    </div>
+
+    <div id="area-reporte">
+        <div class="card banner-total">
+            <h2 style="margin:0; opacity: 0.9; font-size: 1.2rem; text-transform: uppercase;">AHORRO TOTAL ESTIMADO IN-HOUSE</h2>
+            <div class="monto-total" id="granTotal">Q 0.00</div>
+            <p id="labelFiltro" style="margin:0; font-weight: bold; font-size: 1.1rem;">Todo el año</p>
+        </div>
+
+        <div class="grid-graficas">
+            <div class="card">
+                <h3 style="text-align:center; color: var(--azul); margin-top: 0;">Distribución de Ahorro por Servicio</h3>
+                <div class="grafica-contenedor"><canvas id="chartDona"></canvas></div>
+            </div>
+            <div class="card">
+                <h3 style="text-align:center; color: var(--azul); margin-top: 0;">Volumen de Producción (Unidades)</h3>
+                <div class="grafica-contenedor"><canvas id="chartBarras"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyACfn6C6_XqLDQI29f6uHUUwlCQkSCXNYk",
+            authDomain: "costos-comunicacion-digital.firebaseapp.com",
+            projectId: "costos-comunicacion-digital",
+            storageBucket: "costos-comunicacion-digital.firebasestorage.app",
+            messagingSenderId: "299496606379",
+            appId: "1:299496606379:web:a4d6609ff79eebff0c85ee"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let gDona, gBarras, datosBase = [];
+
+        // Plugin para forzar el fondo blanco en las gráficas al exportar a PDF
+        const pluginFondoBlanco = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const {ctx} = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = options.color || '#ffffff';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
+
+        onSnapshot(collection(db, "costos_publicidad"), (snap) => {
+            datosBase = snap.docs.map(d => d.data());
+            procesarUI();
+        });
+
+        document.getElementById('filtro').addEventListener('change', procesarUI);
+
+        function procesarUI() {
+            const f = document.getElementById('filtro').value;
+            const tituloFiltro = f === "TODO" ? "Resumen Acumulado" : `Mes filtrado: ${f}`;
+            document.getElementById('labelFiltro').innerText = tituloFiltro;
+            
+            let filtrados = f === "TODO" ? datosBase : datosBase.filter(d => d.mes === f);
+            
+            const total = filtrados.reduce((s, r) => s + r.total, 0);
+            document.getElementById('granTotal').innerText = `Q ${total.toLocaleString('es-GT', {minimumFractionDigits: 2})}`;
+
+            const qPorServicio = {}, cPorServicio = {};
+            filtrados.forEach(r => {
+                qPorServicio[r.servicio] = (qPorServicio[r.servicio] || 0) + r.total;
+                cPorServicio[r.servicio] = (cPorServicio[r.servicio] || 0) + r.cantidad;
+            });
+
+            if (gDona) gDona.destroy();
+            gDona = new Chart(document.getElementById('chartDona'), {
+                type: 'doughnut',
+                data: { 
+                    labels: Object.keys(qPorServicio), 
+                    datasets: [{ data: Object.values(qPorServicio), backgroundColor: ['#172e59','#158e45','#f1c40f','#e67e22','#3498db','#9b59b6','#e74c3c', '#34495e', '#16a085', '#d35400', '#27ae60', '#8e44ad', '#7f8c8d', '#c0392b'] }] 
+                },
+                plugins: [pluginFondoBlanco],
+                options: { 
+                    maintainAspectRatio: false, 
+                    responsive: true, 
+                    plugins: { 
+                        customCanvasBackgroundColor: { color: 'white' },
+                        legend: { position: 'bottom' } 
+                    } 
+                }
+            });
+
+            if (gBarras) gBarras.destroy();
+            gBarras = new Chart(document.getElementById('chartBarras'), {
+                type: 'bar',
+                data: { 
+                    labels: Object.keys(cPorServicio), 
+                    datasets: [{ label: 'Archivos producidos', data: Object.values(cPorServicio), backgroundColor: '#158e45' }] 
+                },
+                plugins: [pluginFondoBlanco],
+                options: { 
+                    maintainAspectRatio: false, 
+                    responsive: true, 
+                    indexAxis: 'y', 
+                    plugins: { 
+                        customCanvasBackgroundColor: { color: 'white' },
+                        legend: { display: false } 
+                    } 
+                }
+            });
+        }
+
+        // --- CONSTRUCCIÓN NATIVA DEL PDF (Sin tomar capturas de pantalla) ---
+        document.getElementById('getPDF').addEventListener('click', () => {
+            const botonPDF = document.getElementById('getPDF');
+            botonPDF.innerText = "Construyendo documento...";
+            botonPDF.disabled = true;
+
+            try {
+                // Iniciar jsPDF en tamaño Carta (Portrait), medidas en pulgadas (in)
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'in', 'letter');
+                const anchoCentro = 4.25; // El centro exacto de una hoja de 8.5 pulgadas
+
+                const filtroActivo = document.getElementById('filtro').value;
+                const textoTotal = document.getElementById('granTotal').innerText;
+
+                // --- PÁGINA 1: Totales y Gráfica de Pastel ---
+                
+                // Títulos
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(18);
+                doc.setTextColor(23, 46, 89); // Azul COOSAJO
+                doc.text("Reporte de Producción y Ahorro", anchoCentro, 1, { align: "center" });
+
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100);
+                doc.text("AHORRO TOTAL ESTIMADO IN-HOUSE", anchoCentro, 1.5, { align: "center" });
+
+                // Gran Total
+                doc.setFontSize(35);
+                doc.setTextColor(21, 142, 69); // Verde COOSAJO
+                doc.text(textoTotal, anchoCentro, 2.2, { align: "center" });
+
+                doc.setFontSize(12);
+                doc.setTextColor(50, 50, 50);
+                doc.text(filtroActivo === "TODO" ? "Resumen Acumulado Anual" : `Mes: ${filtroActivo}`, anchoCentro, 2.6, { align: "center" });
+
+                // Extraer imagen de Gráfica 1 y pegarla en el PDF
+                const imgDona = gDona.toBase64Image('image/png', 1);
+                // addImage(imagen, formato, x, y, ancho, alto)
+                doc.addImage(imgDona, 'PNG', 0.75, 3.5, 7, 5); 
+
+
+                // --- PÁGINA 2: Gráfica de Barras ---
+                doc.addPage();
+
+                doc.setFontSize(16);
+                doc.setTextColor(23, 46, 89);
+                doc.text("Volumen de Producción Detallado (Unidades)", anchoCentro, 1, { align: "center" });
+
+                // Extraer imagen de Gráfica 2 y pegarla
+                const imgBarras = gBarras.toBase64Image('image/png', 1);
+                doc.addImage(imgBarras, 'PNG', 0.5, 1.5, 7.5, 6);
+
+                // Guardar el archivo
+                doc.save(`Reporte_Produccion_COOSAJO_${filtroActivo}.pdf`);
+
+            } catch (error) {
+                console.error("Error al generar PDF:", error);
+                alert("Hubo un error al generar el documento. Verifica la consola.");
+            } finally {
+                botonPDF.innerText = "📄 Generar PDF Oficial";
+                botonPDF.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
