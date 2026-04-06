@@ -31,7 +31,7 @@
         .monto-total { font-size: 3.5rem; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
 
         .grid-graficas { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .grafica-contenedor { height: 450px; display: flex; justify-content: center; position: relative; width: 100%; background: white;}
+        .grafica-contenedor { height: 400px; display: flex; justify-content: center; position: relative; width: 100%; background: white; padding: 10px; box-sizing: border-box;}
 
         @media (min-width: 800px) { .grid-graficas { grid-template-columns: 1fr 1fr; } .grafica-contenedor { height: 350px; } }
     </style>
@@ -65,6 +65,7 @@
                     <option value="MiPequeñaAsamblea">MiPequeñaAsamblea</option>
                     <option value="Asamblea General">Asamblea General</option>
                     <option value="21k">21k</option>
+                    <option value="EJES">EJES</option>
                 </select>
             </div>
         </div>
@@ -81,13 +82,18 @@
 
         <div class="grid-graficas">
             <div class="card">
-                <h3 style="text-align:center; color: var(--azul); margin-top: 0;">Distribución de Ahorro por Servicio</h3>
+                <h3 style="text-align:center; color: var(--azul); margin-top: 0;">Distribución Ahorro (Sin Ejes)</h3>
                 <div class="grafica-contenedor"><canvas id="chartDona"></canvas></div>
             </div>
             <div class="card">
-                <h3 style="text-align:center; color: var(--azul); margin-top: 0;">Volumen de Producción (Unidades)</h3>
+                <h3 style="text-align:center; color: var(--azul); margin-top: 0;">Volumen de Producción (Sin Ejes)</h3>
                 <div class="grafica-contenedor"><canvas id="chartBarras"></canvas></div>
             </div>
+        </div>
+
+        <div class="card">
+            <h3 style="text-align:center; color: #e67e22; margin-top: 0;">Volumen de Posts por Eje Estratégico</h3>
+            <div class="grafica-contenedor"><canvas id="chartEjes"></canvas></div>
         </div>
     </div>
 
@@ -107,7 +113,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let gDona, gBarras, datosBase = [];
+        let gDona, gBarras, gEjes, datosBase = [];
 
         const pluginFondoBlanco = {
             id: 'customCanvasBackgroundColor',
@@ -122,15 +128,7 @@
         };
 
         onSnapshot(collection(db, "costos_publicidad"), (snap) => {
-            datosBase = snap.docs.map(d => {
-                let item = d.data();
-                // Regla de limpieza histórica:
-                if (item.servicio === 'Giras de fotos') {
-                    item.servicio = 'Cobertura de fotos'; // Renombra los registros viejos
-                }
-                return item;
-            }).filter(item => item.servicio !== 'Notas'); // Ignora por completo los registros que digan Notas
-            
+            datosBase = snap.docs.map(d => d.data());
             procesarUI();
         });
 
@@ -154,33 +152,41 @@
             if (fMes !== "TODO") filtrados = filtrados.filter(d => d.mes === fMes);
             if (fActividad !== "TODO") filtrados = filtrados.filter(d => d.marca === fActividad);
             
-            const total = filtrados.reduce((s, r) => s + r.total, 0);
-            document.getElementById('granTotal').innerText = `Q ${total.toLocaleString('es-GT', {minimumFractionDigits: 2})}`;
-
+            let totalGeneral = 0;
             const qPorServicio = {}, cPorServicio = {};
+            const cPorEje = {};
+
+            const listaEjes = ['Comercialización', 'Vinculación', 'Educación'];
+
             filtrados.forEach(r => {
-                qPorServicio[r.servicio] = (qPorServicio[r.servicio] || 0) + r.total;
-                cPorServicio[r.servicio] = (cPorServicio[r.servicio] || 0) + r.cantidad;
+                totalGeneral += r.total; // Sumar el dinero de TODO (incluyendo Ejes)
+
+                // Separar la data
+                if (listaEjes.includes(r.servicio)) {
+                    // Si es un Eje, sumarlo a la gráfica nueva
+                    cPorEje[r.servicio] = (cPorEje[r.servicio] || 0) + r.cantidad;
+                } else {
+                    // Si es normal, sumarlo a las gráficas principales
+                    qPorServicio[r.servicio] = (qPorServicio[r.servicio] || 0) + r.total;
+                    cPorServicio[r.servicio] = (cPorServicio[r.servicio] || 0) + r.cantidad;
+                }
             });
 
+            document.getElementById('granTotal').innerText = `Q ${totalGeneral.toLocaleString('es-GT', {minimumFractionDigits: 2})}`;
+
+            // Gráfica de Dona (Normal)
             if (gDona) gDona.destroy();
             gDona = new Chart(document.getElementById('chartDona'), {
                 type: 'doughnut',
                 data: { 
                     labels: Object.keys(qPorServicio), 
-                    datasets: [{ data: Object.values(qPorServicio), backgroundColor: ['#172e59','#158e45','#f1c40f','#e67e22','#3498db','#9b59b6','#e74c3c', '#34495e', '#16a085', '#d35400', '#27ae60', '#8e44ad', '#7f8c8d', '#c0392b', '#8e44ad', '#2c3e50'] }] 
+                    datasets: [{ data: Object.values(qPorServicio), backgroundColor: ['#172e59','#158e45','#f1c40f','#e67e22','#3498db','#9b59b6','#e74c3c', '#34495e', '#16a085', '#d35400', '#27ae60', '#8e44ad'] }] 
                 },
                 plugins: [pluginFondoBlanco],
-                options: { 
-                    maintainAspectRatio: false, 
-                    responsive: true, 
-                    plugins: { 
-                        customCanvasBackgroundColor: { color: 'white' },
-                        legend: { position: 'bottom' } 
-                    } 
-                }
+                options: { maintainAspectRatio: false, responsive: true, plugins: { customCanvasBackgroundColor: { color: 'white' }, legend: { position: 'bottom' } } }
             });
 
+            // Gráfica de Barras (Normal)
             if (gBarras) gBarras.destroy();
             gBarras = new Chart(document.getElementById('chartBarras'), {
                 type: 'bar',
@@ -189,18 +195,23 @@
                     datasets: [{ label: 'Archivos producidos', data: Object.values(cPorServicio), backgroundColor: '#158e45' }] 
                 },
                 plugins: [pluginFondoBlanco],
-                options: { 
-                    maintainAspectRatio: false, 
-                    responsive: true, 
-                    indexAxis: 'y', 
-                    plugins: { 
-                        customCanvasBackgroundColor: { color: 'white' },
-                        legend: { display: false } 
-                    } 
-                }
+                options: { maintainAspectRatio: false, responsive: true, indexAxis: 'y', plugins: { customCanvasBackgroundColor: { color: 'white' }, legend: { display: false } } }
+            });
+
+            // TERCERA GRÁFICA (Ejes Estratégicos)
+            if (gEjes) gEjes.destroy();
+            gEjes = new Chart(document.getElementById('chartEjes'), {
+                type: 'pie',
+                data: { 
+                    labels: Object.keys(cPorEje), 
+                    datasets: [{ data: Object.values(cPorEje), backgroundColor: ['#f39c12', '#d35400', '#c0392b'] }] 
+                },
+                plugins: [pluginFondoBlanco],
+                options: { maintainAspectRatio: false, responsive: true, plugins: { customCanvasBackgroundColor: { color: 'white' }, legend: { position: 'bottom' } } }
             });
         }
 
+        // GENERACIÓN DE PDF
         document.getElementById('getPDF').addEventListener('click', () => {
             const botonPDF = document.getElementById('getPDF');
             botonPDF.innerText = "Construyendo documento...";
@@ -214,6 +225,7 @@
                 const textoSubtitulo = document.getElementById('labelFiltro').innerText;
                 const textoTotal = document.getElementById('granTotal').innerText;
 
+                // PAG 1: Resumen y Dona
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(18);
                 doc.setTextColor(23, 46, 89);
@@ -234,13 +246,21 @@
                 const imgDona = gDona.toBase64Image('image/png', 1);
                 doc.addImage(imgDona, 'PNG', 0.75, 3.5, 7, 5); 
 
+                // PAG 2: Barras
                 doc.addPage();
                 doc.setFontSize(16);
                 doc.setTextColor(23, 46, 89);
-                doc.text("Volumen de Producción Detallado (Unidades)", anchoCentro, 1, { align: "center" });
-
+                doc.text("Volumen de Producción (Sin Ejes)", anchoCentro, 1, { align: "center" });
                 const imgBarras = gBarras.toBase64Image('image/png', 1);
                 doc.addImage(imgBarras, 'PNG', 0.5, 1.5, 7.5, 6);
+
+                // PAG 3: Ejes
+                doc.addPage();
+                doc.setFontSize(16);
+                doc.setTextColor(230, 126, 34); // Naranja para diferenciar
+                doc.text("Volumen de Producción por Ejes Estratégicos", anchoCentro, 1, { align: "center" });
+                const imgEjes = gEjes.toBase64Image('image/png', 1);
+                doc.addImage(imgEjes, 'PNG', 0.75, 1.5, 7, 5);
 
                 const fMes = document.getElementById('filtroMes').value;
                 const fActividad = document.getElementById('filtroActividad').value;
@@ -253,7 +273,7 @@
 
             } catch (error) {
                 console.error("Error al generar PDF:", error);
-                alert("Hubo un error al generar el documento. Verifica la consola.");
+                alert("Hubo un error al generar el documento.");
             } finally {
                 botonPDF.innerText = "📄 Generar PDF Oficial";
                 botonPDF.disabled = false;
