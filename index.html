@@ -87,14 +87,22 @@
                         <option value="MiPequeñaAsamblea">MiPequeñaAsamblea</option>
                         <option value="Asamblea General">Asamblea General</option>
                         <option value="21k">21k</option>
+                        <option value="EJES">EJES</option> 
                     </select>
                 </div>
             </div>
 
             <div class="grupo-form">
-                <label class="titulo-seccion">Tipo de Servicio:</label>
-                <div class="grid-servicios" id="grid-servicios">
+                <label class="titulo-seccion" id="titulo-servicio">Tipo de Servicio:</label>
+                
+                <div class="grid-servicios" id="grid-servicios-normal">
                     </div>
+
+                <div class="grid-servicios" id="grid-servicios-ejes" style="display: none;">
+                    <label class="radio-card"><input type="radio" name="servicio_radio" value="Comercialización"><span>Comercialización</span></label>
+                    <label class="radio-card"><input type="radio" name="servicio_radio" value="Vinculación"><span>Vinculación</span></label>
+                    <label class="radio-card"><input type="radio" name="servicio_radio" value="Educación"><span>Educación</span></label>
+                </div>
             </div>
 
             <div class="grupo-form" id="caja-descripcion" style="display: none;">
@@ -136,7 +144,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Precios Fijos (Los manuales no necesitan estar aquí porque se teclean)
         const listaPreciosFijos = {
             "Afiches o Banners": 350,    
             "Infografías": 300,
@@ -153,61 +160,100 @@
             "Reels": 650                 
         };
 
-        // Generar botones en pantalla
         const serviciosOrdenados = [
             "Afiches o Banners", "Infografías", "Videos", "Animaciones", 
             "Jingles", "Reportaje", "En vivos", "Post", "Historias", 
             "Cobertura de fotos", "Fotos de Estudio", "Tomas de Drone", 
-            "Reels", "Audio", "Diseños Gráficos Generales", "EJES"
+            "Reels", "Audio", "Diseños Gráficos Generales"
         ];
 
-        const gridServicios = document.getElementById('grid-servicios');
+        const gridNormal = document.getElementById('grid-servicios-normal');
+        const gridEjes = document.getElementById('grid-servicios-ejes');
+        
+        // Cargar botones normales
         serviciosOrdenados.forEach(serv => {
             const label = document.createElement('label');
             label.className = 'radio-card';
-            label.innerHTML = `<input type="radio" name="servicio_radio" value="${serv}" required><span>${serv}</span>`;
-            gridServicios.appendChild(label);
+            label.innerHTML = `<input type="radio" name="servicio_radio" value="${serv}"><span>${serv}</span>`;
+            gridNormal.appendChild(label);
         });
 
-        // Referencias del DOM
         const formulario = document.getElementById('formProduccion');
+        const selectMarca = document.getElementById('marca');
         const btnGuardar = document.getElementById('btnGuardar');
         const mensajeExito = document.getElementById('mensaje-exito');
+        const tituloServicio = document.getElementById('titulo-servicio');
+        
         const cajaCosto = document.getElementById('caja-costo');
         const inputCosto = document.getElementById('costo_unitario');
         const labelCosto = document.getElementById('label-costo');
+        
         const cajaDescripcion = document.getElementById('caja-descripcion');
         const inputDescripcion = document.getElementById('descripcion');
 
-        // Escuchar clics en la cuadrícula
-        gridServicios.addEventListener('change', (e) => {
+        // Lógica de cambio de Proyecto (Mostrar/Ocultar Grillas)
+        selectMarca.addEventListener('change', (e) => {
+            // Desmarcar cualquier botón que estuviera presionado
+            const checkedRadio = document.querySelector('input[name="servicio_radio"]:checked');
+            if (checkedRadio) checkedRadio.checked = false;
+
+            // Ocultar cajas de texto libre por defecto al cambiar
+            cajaDescripcion.style.display = 'none';
+            cajaCosto.style.display = 'none';
+            inputDescripcion.required = false;
+            inputCosto.required = false;
+
+            if (e.target.value === 'EJES') {
+                gridNormal.style.display = 'none';
+                gridEjes.style.display = 'grid';
+                tituloServicio.innerText = 'Selecciona el Eje:';
+                
+                // Forzar que los botones de EJES sean requeridos y los normales no
+                document.querySelectorAll('#grid-servicios-ejes input').forEach(r => r.required = true);
+                document.querySelectorAll('#grid-servicios-normal input').forEach(r => r.required = false);
+            } else {
+                gridNormal.style.display = 'grid';
+                gridEjes.style.display = 'none';
+                tituloServicio.innerText = 'Tipo de Servicio:';
+                
+                // Forzar que los botones normales sean requeridos
+                document.querySelectorAll('#grid-servicios-normal input').forEach(r => r.required = true);
+                document.querySelectorAll('#grid-servicios-ejes input').forEach(r => r.required = false);
+            }
+        });
+
+        // Lógica para mostrar/ocultar precio y descripción al tocar un botón
+        document.addEventListener('change', (e) => {
             if (e.target.name === 'servicio_radio') {
                 const serv = e.target.value;
 
-                if (serv === 'Diseños Gráficos Generales' || serv === 'EJES') {
-                    // Mostrar todo para Diseño y EJES
+                // Las 3 de EJES y Diseño Gráfico muestran TODO libre
+                if (serv === 'Diseños Gráficos Generales' || serv === 'Comercialización' || serv === 'Vinculación' || serv === 'Educación') {
                     cajaDescripcion.style.display = 'block';
                     inputDescripcion.required = true;
+                    
                     cajaCosto.style.display = 'block';
                     inputCosto.required = true;
                     inputCosto.value = '';
-                    labelCosto.innerText = `Precio de ${serv} (Q):`;
+                    labelCosto.innerText = `Costo de ${serv} (Q):`;
 
                 } else if (serv === 'Audio') {
-                    // Mostrar solo precio para Audio
+                    // Audio solo muestra el precio libre
                     cajaDescripcion.style.display = 'none';
                     inputDescripcion.required = false;
                     inputDescripcion.value = '';
+
                     cajaCosto.style.display = 'block';
                     inputCosto.required = true;
                     inputCosto.value = '';
                     labelCosto.innerText = 'Precio del Audio (Q):';
 
                 } else {
-                    // Ocultar todo para los demás y asignar precio secreto
+                    // Servicios normales ocultan las cajas y guardan el precio en secreto
                     cajaDescripcion.style.display = 'none';
                     inputDescripcion.required = false;
                     inputDescripcion.value = '';
+                    
                     cajaCosto.style.display = 'none';
                     inputCosto.required = false;
                     inputCosto.value = listaPreciosFijos[serv] || 0;
@@ -222,7 +268,7 @@
 
             const mes = document.getElementById('mes').value;
             const marca = document.getElementById('marca').value;
-            // Capturar el valor del botón seleccionado
+            // Se captura el servicio desde la grilla que esté activa
             const servicio = document.querySelector('input[name="servicio_radio"]:checked').value;
             const cantidad = parseInt(document.getElementById('cantidad').value);
             const costoUnitario = parseFloat(document.getElementById('costo_unitario').value);
@@ -244,10 +290,15 @@
                 mensajeExito.style.display = 'block';
                 formulario.reset();
                 
-                // Ocultar cajas mágicas y quitar selecciones
+                // Reiniciar interfaz a como empieza
                 cajaDescripcion.style.display = 'none';
                 cajaCosto.style.display = 'none';
                 inputCosto.required = false;
+                
+                // Volver a la grilla normal si se guardó un EJE
+                gridNormal.style.display = 'grid';
+                gridEjes.style.display = 'none';
+                tituloServicio.innerText = 'Tipo de Servicio:';
 
                 setTimeout(() => {
                     mensajeExito.style.display = 'none';
