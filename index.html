@@ -20,9 +20,6 @@
         select, input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; box-sizing: border-box; font-family: inherit; }
         textarea { resize: vertical; }
         select:focus, input:focus, textarea:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 5px rgba(21, 142, 69, 0.3); }
-        
-        /* Estilo para cuando la casilla está bloqueada */
-        input[readonly] { background-color: #e9ecef; color: #495057; cursor: not-allowed; font-weight: bold; }
 
         .botones-container { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; }
         
@@ -105,9 +102,10 @@
                     <label>Cantidad:</label>
                     <input type="number" id="cantidad" min="1" required placeholder="Ej. 5">
                 </div>
-                <div style="flex: 1;">
+                
+                <div style="flex: 1; display: none;" id="caja-costo">
                     <label id="label-costo">Costo Unitario (Q):</label>
-                    <input type="number" id="costo_unitario" min="0" required placeholder="Selecciona un servicio..." readonly>
+                    <input type="number" id="costo_unitario" min="0" placeholder="Ingresa el valor...">
                 </div>
             </div>
 
@@ -134,9 +132,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // =========================================================
-        // LISTA DE PRECIOS FIJOS ACTUALIZADA CON TUS DATOS
-        // =========================================================
+        // Precios reales
         const listaPreciosFijos = {
             "Afiches o Banners": 350,    
             "Infografías": 300,
@@ -152,54 +148,51 @@
             "Tomas de Drone": 800,       
             "Reels": 650                 
         };
-        // =========================================================
 
         const formulario = document.getElementById('formProduccion');
         const btnGuardar = document.getElementById('btnGuardar');
         const mensajeExito = document.getElementById('mensaje-exito');
         const selectServicio = document.getElementById('servicio');
+        
+        const cajaCosto = document.getElementById('caja-costo');
         const inputCosto = document.getElementById('costo_unitario');
         const labelCosto = document.getElementById('label-costo');
+        
         const cajaDescripcion = document.getElementById('caja-descripcion');
         const inputDescripcion = document.getElementById('descripcion');
 
-        // Lógica Inteligente de Precios y Casillas
+        // Lógica Inteligente para mostrar/ocultar y asignar precios
         selectServicio.addEventListener('change', (e) => {
             const serv = e.target.value;
 
             if (serv === 'Diseños Gráficos Generales') {
-                // Mostrar descripción
                 cajaDescripcion.style.display = 'block';
                 inputDescripcion.required = true;
                 
-                // Desbloquear casilla de precio para ingreso libre
-                inputCosto.readOnly = false;
+                cajaCosto.style.display = 'block';
+                inputCosto.required = true;
                 inputCosto.value = '';
                 labelCosto.innerText = 'Precio Estimado (Q):';
-                inputCosto.placeholder = "Ingresa el valor...";
 
             } else if (serv === 'Audio') {
-                // Ocultar descripción
                 cajaDescripcion.style.display = 'none';
                 inputDescripcion.required = false;
                 inputDescripcion.value = '';
 
-                // Desbloquear precio para opciones variables (200 o 350)
-                inputCosto.readOnly = false;
+                cajaCosto.style.display = 'block';
+                inputCosto.required = true;
                 inputCosto.value = '';
                 labelCosto.innerText = 'Precio del Audio (Q):';
-                inputCosto.placeholder = "Ej. 200 o 350...";
 
             } else {
-                // Ocultar descripción
                 cajaDescripcion.style.display = 'none';
                 inputDescripcion.required = false;
                 inputDescripcion.value = '';
                 
-                // Bloquear casilla y asignar precio fijo del listado
-                inputCosto.readOnly = true;
+                // Ocultamos la caja de costo y asignamos el valor en silencio
+                cajaCosto.style.display = 'none';
+                inputCosto.required = false;
                 inputCosto.value = listaPreciosFijos[serv] || 0;
-                labelCosto.innerText = 'Precio Fijo (Q):';
             }
         });
 
@@ -230,10 +223,11 @@
 
                 mensajeExito.style.display = 'block';
                 formulario.reset();
+                
+                // Regresar todo al estado oculto inicial
                 cajaDescripcion.style.display = 'none';
-                inputCosto.readOnly = true;
-                inputCosto.value = '';
-                labelCosto.innerText = 'Costo Unitario (Q):';
+                cajaCosto.style.display = 'none';
+                inputCosto.required = false;
 
                 setTimeout(() => {
                     mensajeExito.style.display = 'none';
