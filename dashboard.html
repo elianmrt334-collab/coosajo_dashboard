@@ -15,10 +15,13 @@
         .btn-volver { position: absolute; left: 0; top: 10px; background: var(--azul); color: white; padding: 10px 15px; text-decoration: none; border-radius: 8px; font-weight: bold; }
         .logo { max-width: 180px; margin-bottom: 10px; }
         
-        .barra-herramientas { background: var(--blanco); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; }
-        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; }
+        .barra-herramientas { background: var(--blanco); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .filtros-grupo { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .filtro-item { display: flex; flex-direction: column; gap: 5px; }
+        .filtro-item label { font-weight: bold; color: var(--azul); font-size: 0.9rem; }
+        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; min-width: 150px; }
         
-        .btn-pdf { background-color: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-pdf { background-color: #e74c3c; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; height: fit-content; align-self: flex-end; }
         .btn-pdf:hover { background-color: #c0392b; }
 
         #area-reporte { background: transparent; padding: 10px; margin: 0 auto; box-sizing: border-box; width: 100%; max-width: 1000px; }
@@ -37,19 +40,35 @@
 
     <div class="header">
         <a href="index.html" class="btn-volver">← Volver</a>
-        <img src="logo.png" alt="COOSAJO" class="logo">
+        <img src="logo.png" alt="COOSAJO" class="logo" onerror="this.style.display='none'">
         <h1 style="color: var(--azul);">Reporte de Producción y Ahorro</h1>
     </div>
 
     <div class="barra-herramientas">
-        <label>Ver reporte de:</label>
-        <select id="filtro">
-            <option value="TODO">Resumen Anual</option>
-            <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
-            <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-            <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
-            <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-        </select>
+        <div class="filtros-grupo">
+            <div class="filtro-item">
+                <label>Mes de producción:</label>
+                <select id="filtroMes">
+                    <option value="TODO">Todo el año</option>
+                    <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+                    <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+                    <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+                    <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+                </select>
+            </div>
+
+            <div class="filtro-item">
+                <label>Proyecto / Evento:</label>
+                <select id="filtroActividad">
+                    <option value="TODO">Todas las actividades</option>
+                    <option value="Coosajo">Coosajo</option>
+                    <option value="MiPequeñaAsamblea">MiPequeñaAsamblea</option>
+                    <option value="Asamblea General">Asamblea General</option>
+                    <option value="21k">21k</option>
+                </select>
+            </div>
+        </div>
+
         <button id="getPDF" class="btn-pdf">📄 Generar PDF Oficial</button>
     </div>
 
@@ -57,7 +76,7 @@
         <div class="card banner-total">
             <h2 style="margin:0; opacity: 0.9; font-size: 1.2rem; text-transform: uppercase;">AHORRO TOTAL ESTIMADO IN-HOUSE</h2>
             <div class="monto-total" id="granTotal">Q 0.00</div>
-            <p id="labelFiltro" style="margin:0; font-weight: bold; font-size: 1.1rem;">Todo el año</p>
+            <p id="labelFiltro" style="margin:0; font-weight: bold; font-size: 1.1rem;">Resumen General Acumulado</p>
         </div>
 
         <div class="grid-graficas">
@@ -77,7 +96,7 @@
         import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "",
+            apiKey: "AIzaSyACfn6C6_XqLDQI29f6uHUUwlCQkSCXNYk",
             authDomain: "costos-comunicacion-digital.firebaseapp.com",
             projectId: "costos-comunicacion-digital",
             storageBucket: "costos-comunicacion-digital.firebasestorage.app",
@@ -108,15 +127,35 @@
             procesarUI();
         });
 
-        document.getElementById('filtro').addEventListener('change', procesarUI);
+        // Escuchar cambios en ambos filtros
+        document.getElementById('filtroMes').addEventListener('change', procesarUI);
+        document.getElementById('filtroActividad').addEventListener('change', procesarUI);
 
         function procesarUI() {
-            const f = document.getElementById('filtro').value;
-            const tituloFiltro = f === "TODO" ? "Resumen Acumulado" : `Mes filtrado: ${f}`;
-            document.getElementById('labelFiltro').innerText = tituloFiltro;
+            const fMes = document.getElementById('filtroMes').value;
+            const fActividad = document.getElementById('filtroActividad').value;
             
-            let filtrados = f === "TODO" ? datosBase : datosBase.filter(d => d.mes === f);
+            // 1. Lógica del Título
+            let textoFiltro = "";
+            if (fMes === "TODO" && fActividad === "TODO") textoFiltro = "Resumen General Acumulado";
+            else if (fMes !== "TODO" && fActividad === "TODO") textoFiltro = `Mes: ${fMes} (Todas las actividades)`;
+            else if (fMes === "TODO" && fActividad !== "TODO") textoFiltro = `Actividad: ${fActividad} (Todo el año)`;
+            else textoFiltro = `Mes: ${fMes} | Actividad: ${fActividad}`;
             
+            document.getElementById('labelFiltro').innerText = textoFiltro;
+            
+            // 2. Lógica del Filtro Doble
+            let filtrados = datosBase;
+            
+            if (fMes !== "TODO") {
+                filtrados = filtrados.filter(d => d.mes === fMes);
+            }
+            if (fActividad !== "TODO") {
+                // Filtramos por 'marca', que es como llamaste al campo de evento en index.html
+                filtrados = filtrados.filter(d => d.marca === fActividad);
+            }
+            
+            // 3. Procesamiento de los datos filtrados
             const total = filtrados.reduce((s, r) => s + r.total, 0);
             document.getElementById('granTotal').innerText = `Q ${total.toLocaleString('es-GT', {minimumFractionDigits: 2})}`;
 
@@ -164,61 +203,59 @@
             });
         }
 
-        // --- CONSTRUCCIÓN NATIVA DEL PDF (Sin tomar capturas de pantalla) ---
+        // --- CONSTRUCCIÓN NATIVA DEL PDF ---
         document.getElementById('getPDF').addEventListener('click', () => {
             const botonPDF = document.getElementById('getPDF');
             botonPDF.innerText = "Construyendo documento...";
             botonPDF.disabled = true;
 
             try {
-                // Iniciar jsPDF en tamaño Carta (Portrait), medidas en pulgadas (in)
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'in', 'letter');
-                const anchoCentro = 4.25; // El centro exacto de una hoja de 8.5 pulgadas
+                const anchoCentro = 4.25; 
 
-                const filtroActivo = document.getElementById('filtro').value;
+                const textoSubtitulo = document.getElementById('labelFiltro').innerText;
                 const textoTotal = document.getElementById('granTotal').innerText;
 
                 // --- PÁGINA 1: Totales y Gráfica de Pastel ---
-                
-                // Títulos
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(18);
-                doc.setTextColor(23, 46, 89); // Azul COOSAJO
+                doc.setTextColor(23, 46, 89);
                 doc.text("Reporte de Producción y Ahorro", anchoCentro, 1, { align: "center" });
 
                 doc.setFontSize(14);
                 doc.setTextColor(100, 100, 100);
                 doc.text("AHORRO TOTAL ESTIMADO IN-HOUSE", anchoCentro, 1.5, { align: "center" });
 
-                // Gran Total
                 doc.setFontSize(35);
-                doc.setTextColor(21, 142, 69); // Verde COOSAJO
+                doc.setTextColor(21, 142, 69);
                 doc.text(textoTotal, anchoCentro, 2.2, { align: "center" });
 
                 doc.setFontSize(12);
                 doc.setTextColor(50, 50, 50);
-                doc.text(filtroActivo === "TODO" ? "Resumen Acumulado Anual" : `Mes: ${filtroActivo}`, anchoCentro, 2.6, { align: "center" });
+                doc.text(textoSubtitulo, anchoCentro, 2.6, { align: "center" });
 
-                // Extraer imagen de Gráfica 1 y pegarla en el PDF
                 const imgDona = gDona.toBase64Image('image/png', 1);
-                // addImage(imagen, formato, x, y, ancho, alto)
                 doc.addImage(imgDona, 'PNG', 0.75, 3.5, 7, 5); 
-
 
                 // --- PÁGINA 2: Gráfica de Barras ---
                 doc.addPage();
-
                 doc.setFontSize(16);
                 doc.setTextColor(23, 46, 89);
                 doc.text("Volumen de Producción Detallado (Unidades)", anchoCentro, 1, { align: "center" });
 
-                // Extraer imagen de Gráfica 2 y pegarla
                 const imgBarras = gBarras.toBase64Image('image/png', 1);
                 doc.addImage(imgBarras, 'PNG', 0.5, 1.5, 7.5, 6);
 
-                // Guardar el archivo
-                doc.save(`Reporte_Produccion_COOSAJO_${filtroActivo}.pdf`);
+                // Nombre del archivo PDF
+                const fMes = document.getElementById('filtroMes').value;
+                const fActividad = document.getElementById('filtroActividad').value;
+                let nombreArchivo = `Reporte_COOSAJO`;
+                if (fMes !== "TODO") nombreArchivo += `_${fMes}`;
+                if (fActividad !== "TODO") nombreArchivo += `_${fActividad}`;
+                nombreArchivo += `.pdf`;
+
+                doc.save(nombreArchivo);
 
             } catch (error) {
                 console.error("Error al generar PDF:", error);
