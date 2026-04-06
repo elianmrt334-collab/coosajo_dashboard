@@ -109,7 +109,6 @@
 
         let gDona, gBarras, datosBase = [];
 
-        // Plugin para forzar el fondo blanco en las gráficas al exportar a PDF
         const pluginFondoBlanco = {
             id: 'customCanvasBackgroundColor',
             beforeDraw: (chart, args, options) => {
@@ -123,11 +122,18 @@
         };
 
         onSnapshot(collection(db, "costos_publicidad"), (snap) => {
-            datosBase = snap.docs.map(d => d.data());
+            datosBase = snap.docs.map(d => {
+                let item = d.data();
+                // Regla de limpieza histórica:
+                if (item.servicio === 'Giras de fotos') {
+                    item.servicio = 'Cobertura de fotos'; // Renombra los registros viejos
+                }
+                return item;
+            }).filter(item => item.servicio !== 'Notas'); // Ignora por completo los registros que digan Notas
+            
             procesarUI();
         });
 
-        // Escuchar cambios en ambos filtros
         document.getElementById('filtroMes').addEventListener('change', procesarUI);
         document.getElementById('filtroActividad').addEventListener('change', procesarUI);
 
@@ -135,7 +141,6 @@
             const fMes = document.getElementById('filtroMes').value;
             const fActividad = document.getElementById('filtroActividad').value;
             
-            // 1. Lógica del Título
             let textoFiltro = "";
             if (fMes === "TODO" && fActividad === "TODO") textoFiltro = "Resumen General Acumulado";
             else if (fMes !== "TODO" && fActividad === "TODO") textoFiltro = `Mes: ${fMes} (Todas las actividades)`;
@@ -144,18 +149,11 @@
             
             document.getElementById('labelFiltro').innerText = textoFiltro;
             
-            // 2. Lógica del Filtro Doble
             let filtrados = datosBase;
             
-            if (fMes !== "TODO") {
-                filtrados = filtrados.filter(d => d.mes === fMes);
-            }
-            if (fActividad !== "TODO") {
-                // Filtramos por 'marca', que es como llamaste al campo de evento en index.html
-                filtrados = filtrados.filter(d => d.marca === fActividad);
-            }
+            if (fMes !== "TODO") filtrados = filtrados.filter(d => d.mes === fMes);
+            if (fActividad !== "TODO") filtrados = filtrados.filter(d => d.marca === fActividad);
             
-            // 3. Procesamiento de los datos filtrados
             const total = filtrados.reduce((s, r) => s + r.total, 0);
             document.getElementById('granTotal').innerText = `Q ${total.toLocaleString('es-GT', {minimumFractionDigits: 2})}`;
 
@@ -170,7 +168,7 @@
                 type: 'doughnut',
                 data: { 
                     labels: Object.keys(qPorServicio), 
-                    datasets: [{ data: Object.values(qPorServicio), backgroundColor: ['#172e59','#158e45','#f1c40f','#e67e22','#3498db','#9b59b6','#e74c3c', '#34495e', '#16a085', '#d35400', '#27ae60', '#8e44ad', '#7f8c8d', '#c0392b'] }] 
+                    datasets: [{ data: Object.values(qPorServicio), backgroundColor: ['#172e59','#158e45','#f1c40f','#e67e22','#3498db','#9b59b6','#e74c3c', '#34495e', '#16a085', '#d35400', '#27ae60', '#8e44ad', '#7f8c8d', '#c0392b', '#8e44ad', '#2c3e50'] }] 
                 },
                 plugins: [pluginFondoBlanco],
                 options: { 
@@ -203,7 +201,6 @@
             });
         }
 
-        // --- CONSTRUCCIÓN NATIVA DEL PDF ---
         document.getElementById('getPDF').addEventListener('click', () => {
             const botonPDF = document.getElementById('getPDF');
             botonPDF.innerText = "Construyendo documento...";
@@ -217,7 +214,6 @@
                 const textoSubtitulo = document.getElementById('labelFiltro').innerText;
                 const textoTotal = document.getElementById('granTotal').innerText;
 
-                // --- PÁGINA 1: Totales y Gráfica de Pastel ---
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(18);
                 doc.setTextColor(23, 46, 89);
@@ -238,7 +234,6 @@
                 const imgDona = gDona.toBase64Image('image/png', 1);
                 doc.addImage(imgDona, 'PNG', 0.75, 3.5, 7, 5); 
 
-                // --- PÁGINA 2: Gráfica de Barras ---
                 doc.addPage();
                 doc.setFontSize(16);
                 doc.setTextColor(23, 46, 89);
@@ -247,7 +242,6 @@
                 const imgBarras = gBarras.toBase64Image('image/png', 1);
                 doc.addImage(imgBarras, 'PNG', 0.5, 1.5, 7.5, 6);
 
-                // Nombre del archivo PDF
                 const fMes = document.getElementById('filtroMes').value;
                 const fActividad = document.getElementById('filtroActividad').value;
                 let nombreArchivo = `Reporte_COOSAJO`;
