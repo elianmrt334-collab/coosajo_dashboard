@@ -3,90 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ingreso de Actividades - COOSAJO</title>
+    <title>Ingreso de Producción - COOSAJO</title>
     <style>
-        :root { --azul: #172e59; --verde: #158e45; --blanco: #ffffff; }
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; box-sizing: border-box;}
-        .container { background-color: var(--blanco); padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border-top: 5px solid var(--azul); position: relative; margin-top: 20px; margin-bottom: 20px; }
-        .header-logo { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
-        .logo-img { max-width: 200px; height: auto; display: block; margin: 0 auto; }
-        h2 { color: var(--azul); text-align: center; margin-top: 0; margin-bottom: 25px; font-size: 1.5rem; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-        select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1rem; }
-        .lista-servicios { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-        .servicio-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .servicio-item:last-child { border-bottom: none; }
-        .servicio-nombre { font-weight: bold; color: var(--azul); font-size: 1.05rem; }
-        .servicio-input { width: 70px; padding: 8px; text-align: center; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; font-weight: bold; color: var(--verde); }
-        button.submit-btn { background-color: var(--verde); color: var(--blanco); border: none; padding: 15px; width: 100%; font-size: 1.1rem; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        button.submit-btn:hover { background-color: #117337; }
-        .enlace-dashboard { display: block; text-align: center; margin-top: 20px; color: var(--azul); text-decoration: none; font-weight: bold; font-size: 0.9rem; }
+        :root { --azul: #172e59; --verde: #158e45; --blanco: #ffffff; --fondo: #f0f4f8; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--fondo); margin: 0; padding: 20px; color: #333; display: flex; flex-direction: column; align-items: center; }
+        
+        .header { text-align: center; margin-bottom: 20px; }
+        .logo { max-width: 180px; margin-bottom: 10px; }
+        h1 { color: var(--azul); margin: 0; }
+        p { color: #666; margin-top: 5px; }
+
+        .formulario-card { background: var(--blanco); padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); width: 100%; max-width: 500px; }
+        
+        .grupo-form { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: var(--azul); }
+        select, input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; box-sizing: border-box; font-family: inherit; }
+        textarea { resize: vertical; }
+        select:focus, input:focus, textarea:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 5px rgba(21, 142, 69, 0.3); }
+
+        .botones-container { display: flex; flex-direction: column; gap: 15px; margin-top: 30px; }
+        
+        .btn-guardar { background-color: var(--verde); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-guardar:hover { background-color: #117538; }
+        .btn-guardar:disabled { background-color: #95cfa9; cursor: not-allowed; }
+
+        .btn-dashboard { background-color: var(--azul); color: white; text-align: center; text-decoration: none; padding: 15px; border-radius: 8px; font-size: 1.1rem; font-weight: bold; transition: 0.3s; }
+        .btn-dashboard:hover { background-color: #102140; }
+
+        #mensaje-exito { display: none; background-color: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; border: 1px solid #c3e6cb; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header-logo">
-            <img src="logo.png" alt="Logo COOSAJO" class="logo-img">
-        </div>
+    <div class="header">
+        <img src="logo.png" alt="COOSAJO" class="logo" onerror="this.style.display='none'">
+        <h1>Registro de Producción</h1>
+        <p>Ingresa los datos para calcular el ahorro in-house</p>
+    </div>
 
-        <h2>Reporte de Actividades</h2>
-        <form id="costForm">
-            <div class="form-group">
-                <label>¿Quién ingresa los datos?</label>
-                <select id="usuario" required>
-                    <option value="" disabled selected>Selecciona tu nombre...</option>
-                    <option value="Elián Martínez">Elián Martínez</option>
-                    <option value="Marco Salazar">Marco Salazar</option>
-                    <option value="Noé Ramírez">Noé Ramírez</option>
-                    <option value="Jorge Lionardo">Jorge Lionardo</option>
+    <div class="formulario-card">
+        
+        <div id="mensaje-exito">✅ ¡Registro guardado con éxito!</div>
+
+        <form id="formProduccion">
+            <div class="grupo-form">
+                <label>Mes de Producción:</label>
+                <select id="mes" required>
+                    <option value="" disabled selected>Selecciona un mes...</option>
+                    <option value="Enero">Enero</option><option value="Febrero">Febrero</option>
+                    <option value="Marzo">Marzo</option><option value="Abril">Abril</option>
+                    <option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+                    <option value="Julio">Julio</option><option value="Agosto">Agosto</option>
+                    <option value="Septiembre">Septiembre</option><option value="Octubre">Octubre</option>
+                    <option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
                 </select>
             </div>
-            
-            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Mes</label>
-                    <select id="mes" required>
-                        <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
-                        <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-                        <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
-                        <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-                    </select>
+
+            <div class="grupo-form">
+                <label>Proyecto / Evento:</label>
+                <select id="marca" required>
+                    <option value="" disabled selected>Selecciona el evento...</option>
+                    <option value="Coosajo">Coosajo</option>
+                    <option value="MiPequeñaAsamblea">MiPequeñaAsamblea</option>
+                    <option value="Asamblea General">Asamblea General</option>
+                    <option value="21k">21k</option>
+                </select>
+            </div>
+
+            <div class="grupo-form">
+                <label>Tipo de Servicio:</label>
+                <select id="servicio" required>
+                    <option value="" disabled selected>Selecciona el servicio...</option>
+                    <option value="Afiches o Banners">Afiches o Banners</option>
+                    <option value="Diseños Gráficos Generales">Diseños Gráficos Generales</option>
+                    <option value="Videos">Videos</option>
+                    <option value="Animaciones">Animaciones</option>
+                    <option value="Jingles">Jingles</option>
+                    <option value="En vivos">En vivos</option>
+                    <option value="Post">Post</option>
+                    <option value="Historias">Historias</option>
+                    <option value="Cobertura de fotos">Cobertura de fotos</option>
+                    <option value="Fotos de Estudio">Fotos de Estudio</option>
+                    <option value="Tomas de Drone">Tomas de Drone</option>
+                    <option value="Reels">Reels</option>
+                </select>
+            </div>
+
+            <div class="grupo-form" id="caja-descripcion" style="display: none;">
+                <label>Especificaciones del Diseño:</label>
+                <textarea id="descripcion" rows="3" placeholder="Describe brevemente de qué es el diseño..."></textarea>
+            </div>
+
+            <div class="grupo-form" style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                    <label>Cantidad:</label>
+                    <input type="number" id="cantidad" min="1" required placeholder="Ej. 5">
                 </div>
-                <div class="form-group" style="flex: 2;">
-                    <label>Página o Evento</label>
-                    <select id="marca" required>
-                        <option value="" disabled selected>Selecciona...</option>
-                        <option value="Coosajo">Coosajo</option>
-                        <option value="MiPequeñaAsamblea">MiPequeñaAsamblea</option>
-                        <option value="Asamblea General">Asamblea General</option>
-                        <option value="21k">21k</option>
-                    </select>
+                <div style="flex: 1;">
+                    <label>Costo Unitario (Q):</label>
+                    <input type="number" id="costo_unitario" min="0" required placeholder="Ej. 500">
                 </div>
             </div>
 
-            <label>Cantidades (Solo números mayores a 0)</label>
-            <div class="lista-servicios">
-                <div class="servicio-item"><span>Post</span><input type="number" id="qty-post" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Historias</span><input type="number" id="qty-historias" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Videos</span><input type="number" id="qty-videos" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Notas</span><input type="number" id="qty-notas" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Reels</span><input type="number" id="qty-reels" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>En vivos</span><input type="number" id="qty-envivos" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Tomas de Drone</span><input type="number" id="qty-drone" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Audios</span><input type="number" id="qty-audios" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Afiches o Banners</span><input type="number" id="qty-afiches" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Infografías</span><input type="number" id="qty-infografias" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Animaciones</span><input type="number" id="qty-animaciones" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Documentales</span><input type="number" id="qty-documentales" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Giras de fotos</span><input type="number" id="qty-girasfotos" class="servicio-input" value="0"></div>
-                <div class="servicio-item"><span>Jingles</span><input type="number" id="qty-jingles" class="servicio-input" value="0"></div>
+            <div class="botones-container">
+                <button type="submit" id="btnGuardar" class="btn-guardar">💾 Guardar Registro</button>
+                <a href="dashboard.html" class="btn-dashboard">📊 Ir al Dashboard Oficial</a>
             </div>
-
-            <button type="submit" class="submit-btn" id="btnGuardar">Guardar Todo</button>
         </form>
-        <a href="dashboard.html" class="enlace-dashboard">Ir al Dashboard &rarr;</a>
     </div>
 
     <script type="module">
@@ -105,54 +128,76 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const serviciosConfig = [
-            { id: "post", nombre: "Post", precio: 275 },
-            { id: "historias", nombre: "Historias", precio: 150 },
-            { id: "videos", nombre: "Videos", precio: 2000 },
-            { id: "notas", nombre: "Notas", precio: 0 },
-            { id: "reels", nombre: "Reels", precio: 0 },
-            { id: "envivos", nombre: "En vivos", precio: 0 },
-            { id: "drone", nombre: "Tomas de Drone", precio: 800 },
-            { id: "audios", nombre: "Audios", precio: 0 },
-            { id: "afiches", nombre: "Afiches o Banners", precio: 0 },
-            { id: "infografias", nombre: "Infografías", precio: 0 },
-            { id: "animaciones", nombre: "Animaciones", precio: 2800 },
-            { id: "documentales", nombre: "Documentales", precio: 0 },
-            { id: "girasfotos", nombre: "Giras de fotos", precio: 0 },
-            { id: "jingles", nombre: "Jingles", precio: 3500 }
-        ];
+        const formulario = document.getElementById('formProduccion');
+        const btnGuardar = document.getElementById('btnGuardar');
+        const mensajeExito = document.getElementById('mensaje-exito');
+        const selectServicio = document.getElementById('servicio');
+        const inputCosto = document.getElementById('costo_unitario');
+        const cajaDescripcion = document.getElementById('caja-descripcion');
+        const inputDescripcion = document.getElementById('descripcion');
 
-        document.getElementById('costForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('btnGuardar');
-            btn.innerText = "Procesando...";
-            btn.disabled = true;
+        // Lógica de auto-completado y mostrar/ocultar descripción
+        selectServicio.addEventListener('change', (e) => {
+            const serv = e.target.value;
+            
+            // Asignar precio por defecto a Fotos de Estudio
+            if (serv === 'Fotos de Estudio') {
+                inputCosto.value = 800;
+            } else {
+                inputCosto.value = ''; 
+            }
 
-            const usuario = document.getElementById('usuario').value;
+            // Mostrar caja de descripción solo si es Diseño Gráfico General
+            if (serv === 'Diseños Gráficos Generales') {
+                cajaDescripcion.style.display = 'block';
+                inputDescripcion.required = true;
+            } else {
+                cajaDescripcion.style.display = 'none';
+                inputDescripcion.required = false;
+                inputDescripcion.value = '';
+            }
+        });
+
+        formulario.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            btnGuardar.innerText = "Guardando...";
+            btnGuardar.disabled = true;
+
             const mes = document.getElementById('mes').value;
             const marca = document.getElementById('marca').value;
-            const fecha = new Date().toISOString();
+            const servicio = document.getElementById('servicio').value;
+            const cantidad = parseInt(document.getElementById('cantidad').value);
+            const costoUnitario = parseFloat(document.getElementById('costo_unitario').value);
+            const descripcion = inputDescripcion.value;
+            
+            const totalAhorro = cantidad * costoUnitario;
 
             try {
-                let guardoAlgo = false;
-                for (let item of serviciosConfig) {
-                    const qty = parseInt(document.getElementById('qty-' + item.id).value);
-                    if (qty > 0) {
-                        await addDoc(collection(db, "costos_publicidad"), {
-                            usuario, mes, marca, servicio: item.nombre, cantidad: qty, total: (qty * item.precio), fecha
-                        });
-                        document.getElementById('qty-' + item.id).value = 0;
-                        guardoAlgo = true;
-                    }
-                }
-                alert(guardoAlgo ? "¡Datos guardados con éxito!" : "Ingresa al menos una cantidad.");
-            } catch (err) {
-                console.error("Error completo:", err);
-                alert("Error al guardar: " + err.message);
+                await addDoc(collection(db, "costos_publicidad"), {
+                    mes: mes,
+                    marca: marca,
+                    servicio: servicio,
+                    descripcion: descripcion, // Se guarda vacío si no es Diseño General
+                    cantidad: cantidad,
+                    total: totalAhorro,
+                    fecha_registro: new Date()
+                });
+
+                mensajeExito.style.display = 'block';
+                formulario.reset();
+                cajaDescripcion.style.display = 'none'; // Volver a ocultar al enviar
+
+                setTimeout(() => {
+                    mensajeExito.style.display = 'none';
+                }, 3000);
+
+            } catch (error) {
+                console.error("Error al guardar: ", error);
+                alert("Hubo un error al guardar. Verifica tu conexión a internet.");
+            } finally {
+                btnGuardar.innerText = "💾 Guardar Registro";
+                btnGuardar.disabled = false;
             }
-            
-            btn.innerText = "Guardar Todo";
-            btn.disabled = false;
         });
     </script>
 </body>
